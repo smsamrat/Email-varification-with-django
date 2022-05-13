@@ -1,11 +1,18 @@
 
-from django.shortcuts import render,HttpResponseRedirect
+from email.message import Message
+from django.shortcuts import redirect, render,HttpResponseRedirect
 from django.urls import reverse  
 from .forms import signUpForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login,logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+#email send
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 
 # Create your views here.
 
@@ -19,7 +26,18 @@ def signup(request):
     if request.method == 'POST':  
         form = signUpForm(data = request.POST)  
         if form.is_valid():  
-            form.save()  
+            user = form.save()
+            current_site=get_current_site(request)
+            mail_subject='Activate Your Account'
+            message=render_to_string('session/account.html',{
+                'user':user,
+                'domain': current_site.domain,
+            })
+            send_mail=form.cleaned_data.get('email')
+            email=EmailMessage(mail_subject,message, to=[send_mail])
+            email.send()
+            messages.success(request,'Successfully Created Account')
+            return redirect('login')
     context = {  
         'form':form,
     }  
